@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudscale-ch/cloudscale-go-sdk"
+	cloudscale "github.com/cloudscale-ch/cloudscale-go-sdk"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -122,9 +122,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	ll.Info("create volume called")
 
 	// get volume first, if it's created do no thing
-	volumes, err := d.cloudscaleClient.Volumes.List(ctx, &cloudscale.ListVolumeParams{
-		Name: volumeName,
-	})
+	volumes, err := d.cloudscaleClient.Volumes.List(ctx, cloudscale.WithNameFilter(volumeName))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -165,12 +163,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return &csi.CreateVolumeResponse{Volume: &csiVolume}, nil
 	}
 
-	volumeReq := &cloudscale.Volume{
-		/*
-			TODO: cloudscale.ch will start supporting different regions soon
-
-			Region: d.region
-		*/
+	volumeReq := &cloudscale.VolumeRequest{
+		ZonalResourceRequest: cloudscale.ZonalResourceRequest{
+			Zone: d.region,
+		},
 		Name:   volumeName,
 		SizeGB: sizeGB,
 		Type:   storageType,
@@ -251,7 +247,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	})
 	ll.Info("controller publish volume called")
 
-	attachRequest := &cloudscale.Volume{
+	attachRequest := &cloudscale.VolumeRequest{
 		ServerUUIDs: &[]string{req.NodeId},
 	}
 	err := d.cloudscaleClient.Volumes.Update(ctx, req.VolumeId, attachRequest)
@@ -287,7 +283,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	})
 	ll.Info("controller unpublish volume called")
 
-	detachRequest := &cloudscale.Volume{
+	detachRequest := &cloudscale.VolumeRequest{
 		ServerUUIDs: &[]string{},
 	}
 	err := d.cloudscaleClient.Volumes.Update(ctx, req.VolumeId, detachRequest)
@@ -448,6 +444,15 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 		"req":    req,
 		"method": "list_snapshots",
 	}).Warn("list snapshots is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// ControllerExpandVolume is called from the resizer to increase the volume size.
+func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "controller_expand_volume",
+	}).Warn("Controller expand_volume is not implemented")
 	return nil, status.Error(codes.Unimplemented, "")
 }
 

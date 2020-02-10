@@ -173,6 +173,7 @@ func (d *Driver) Stop() {
 // When building any packages that import version, pass the build/install cmd
 // ldflags like so:
 //   go build -ldflags "-X github.com/cloudscale-ch/csi-cloudscale/driver.version=0.0.1"
+
 // GetVersion returns the current release version, as inserted at build time.
 func GetVersion() string {
 	return version
